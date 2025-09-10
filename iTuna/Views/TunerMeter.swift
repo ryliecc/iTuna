@@ -10,25 +10,28 @@ import SwiftUI
 struct TunerMeter: View {
     let targetFrequency: Float
     let detectedFrequency: Float
+    @State private var displayedOffset: CGFloat = 0
 
     var body: some View {
         let difference = detectedFrequency - targetFrequency
-        let clamped = max(min(difference, 10), -10)  // max ±10 Hz
+        let clamped = max(min(difference, 10), -10)
+        let targetOffset = CGFloat(clamped) * 10
 
-        return ZStack(alignment: .center) {
-            // Hintergrund
-            Rectangle()
+        return ZStack {
+            RoundedRectangle(cornerRadius: 10)
                 .fill(Color.gray.opacity(0.2))
                 .frame(height: 20)
-                .cornerRadius(10)
 
-            // Marker
             Rectangle()
-                .fill(clamped == 0 ? Color.green : Color.red)
-                .frame(width: 10, height: 30)
-                .offset(x: CGFloat(clamped) * 10)  // Skaliere für Sichtbarkeit
+                .fill(Color.red)
+                .frame(width: 4, height: 30)
+                .offset(x: displayedOffset)
+                .animation(.easeOut(duration: 0.1), value: displayedOffset)
         }
         .padding()
+        .onChange(of: detectedFrequency) { _ in
+            displayedOffset = targetOffset
+        }
     }
 }
 
