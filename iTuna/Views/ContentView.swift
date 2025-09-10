@@ -9,6 +9,8 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var audioManager = AudioManager()
+    @State private var detectedFrequency: Float?
+    @State private var nearestNote: String = "-"
 
     var body: some View {
         VStack {
@@ -20,15 +22,42 @@ struct ContentView: View {
             )
             .padding()
 
-            Button("Start Listening") {
-                audioManager.start()
+            if let freq = detectedFrequency {
+                Text("Frequency: \(freq, specifier: "%.1f") Hz")
+                Text("Nearest Note: \(nearestNote)")
+            } else {
+                Text("Frequency: -")
+                Text("Nearest Note: -")
             }
-            Button("Stop Listening") {
-                audioManager.stop()
+
+            HStack(spacing: 10) {
+                Button("Start Listening") {
+                    audioManager.start()
+                    startPitchUpdates()
+                }
+                Button("Stop Listening") {
+                    audioManager.stop()
+                }
             }
         }
         .padding()
         .frame(width: 200, height: 150)
+    }
+
+    private func startPitchUpdates() {
+        let format = audioManager.inputNode.inputFormat(forBus: 0)
+        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+            let buffer = audioManager.currentBuffer
+            let sampleRate = Float(format.sampleRate)
+
+            if let freq = audioManager.detectPitch(
+                from: buffer,
+                sampleRate: sampleRate
+            ) {
+                detectedFrequency = freq
+                nearestNote = GuitarString.nearestString(for: freq)?.name ?? "-"
+            }
+        }
     }
 }
 

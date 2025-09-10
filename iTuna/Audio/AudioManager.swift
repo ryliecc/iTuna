@@ -11,7 +11,7 @@ import Foundation
 
 class AudioManager: ObservableObject {
     private var engine: AVAudioEngine
-    private var inputNode: AVAudioInputNode
+    var inputNode: AVAudioInputNode
     private var bus: AVAudioNodeBus = 0
 
     @Published var currentAmplitude: Float = 0.0
@@ -88,5 +88,31 @@ class AudioManager: ObservableObject {
     func stop() {
         inputNode.removeTap(onBus: bus)
         engine.stop()
+    }
+
+    func detectPitch(from buffer: [Float], sampleRate: Float) -> Float? {
+        guard !buffer.isEmpty else { return nil }
+
+        var maxCorrelation: Float = 0
+        var bestLag: Int = 0
+        let bufferCount = buffer.count
+
+        // Autocorrelation
+        for lag in 20..<bufferCount / 2 {
+            var correlation: Float = 0
+            for i in 0..<(bufferCount - lag) {
+                correlation += buffer[i] * buffer[i + lag]
+            }
+
+            if correlation > maxCorrelation {
+                maxCorrelation = correlation
+                bestLag = lag
+            }
+        }
+
+        guard bestLag != 0 else { return nil }
+
+        let frequency = sampleRate / Float(bestLag)
+        return frequency
     }
 }
