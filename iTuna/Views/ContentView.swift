@@ -22,9 +22,15 @@ struct ContentView: View {
             )
             .padding()
 
-            if let freq = detectedFrequency {
+            if let freq = detectedFrequency,
+                let target = GuitarString.nearestString(for: freq)
+            {
                 Text("Frequency: \(freq, specifier: "%.1f") Hz")
-                Text("Nearest Note: \(nearestNote)")
+                Text("Nearest Note: \(target.name)")
+                TunerMeter(
+                    targetFrequency: target.frequency,
+                    detectedFrequency: freq
+                )
             } else {
                 Text("Frequency: -")
                 Text("Nearest Note: -")
@@ -41,7 +47,7 @@ struct ContentView: View {
             }
         }
         .padding()
-        .frame(width: 200, height: 150)
+        .frame(width: 300)
     }
 
     private func startPitchUpdates() {
