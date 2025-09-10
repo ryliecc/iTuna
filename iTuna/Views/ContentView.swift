@@ -22,19 +22,17 @@ struct ContentView: View {
             )
             .padding()
 
-            if let freq = detectedFrequency,
-                let target = GuitarString.nearestString(for: freq)
-            {
-                Text("Frequency: \(freq, specifier: "%.1f") Hz")
-                Text("Nearest Note: \(target.name)")
-                TunerMeter(
-                    targetFrequency: target.frequency,
-                    detectedFrequency: freq
-                )
-            } else {
-                Text("Frequency: -")
-                Text("Nearest Note: -")
-            }
+            Text(
+                "Frequency: \(detectedFrequency != nil ? "\(detectedFrequency!, specifier: "%.1f") Hz" : "-")"
+            )
+            Text(
+                "Nearest Note: \(detectedFrequency != nil ? GuitarString.nearestString(for: detectedFrequency!)?.name ?? "-" : "-")"
+            )
+            TunerMeter(
+                targetFrequency: GuitarString.standardTuning[0].frequency,
+                detectedFrequency: detectedFrequency
+                    ?? GuitarString.standardTuning[0].frequency
+            )
 
             HStack(spacing: 10) {
                 Button("Start Listening") {
