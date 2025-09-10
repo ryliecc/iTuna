@@ -8,14 +8,27 @@
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var audioManager = AudioManager()
+
     var body: some View {
         VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+            Text("🎸 Guitar Tuner")
+                .font(.headline)
+
+            Text(
+                "Amplitude: \(audioManager.currentAmplitude, specifier: "%.4f")"
+            )
+            .padding()
+
+            Button("Start Listening") {
+                audioManager.start()
+            }
+            Button("Stop Listening") {
+                audioManager.stop()
+            }
         }
         .padding()
+        .frame(width: 200, height: 150)
     }
 }
 

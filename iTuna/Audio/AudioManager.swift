@@ -22,33 +22,66 @@ class AudioManager: ObservableObject {
         inputNode = engine.inputNode
     }
 
-    func start() {
-        let format = inputNode.outputFormat(forBus: bus)
+    func ensureMicrophoneAccess(completion: @escaping (Bool) -> Void) {
+        let discoverySession = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.microphone],
+            mediaType: .audio,
+            position: .unspecified
+        )
 
-        inputNode.installTap(onBus: bus, bufferSize: 1024, format: format) {
-            buffer,
-            _ in
-            guard let channelData = buffer.floatChannelData?[0] else { return }
-            let channelDataArray = Array(
-                UnsafeBufferPointer(
-                    start: channelData,
-                    count: Int(buffer.frameLength)
-                )
-            )
-
-            DispatchQueue.main.async {
-                self.currentBuffer = channelDataArray
-                self.currentAmplitude =
-                    channelDataArray.map { abs($0) }.max() ?? 0.0
-            }
+        let devices = discoverySession.devices
+        guard !devices.isEmpty else {
+            print("⚠️ Kein Mikrofon verfügbar")
+            completion(false)
+            return
         }
 
-        do {
-            try engine.start()
-        } catch {
-            print(
-                "⚠️ AudioEngine konnte nicht gestartet werden: \(error.localizedDescription)"
-            )
+        AVCaptureDevice.requestAccess(for: .audio) { granted in
+            DispatchQueue.main.async {
+                completion(granted)
+            }
+        }
+    }
+
+    func start() {
+        ensureMicrophoneAccess { granted in
+            guard granted else {
+                print("⚠️ Kein Mikrofonzugriff")
+                return
+            }
+
+            let format = self.inputNode.inputFormat(forBus: self.bus)
+            self.inputNode.removeTap(onBus: self.bus)
+
+            self.inputNode.installTap(
+                onBus: self.bus,
+                bufferSize: 1024,
+                format: format
+            ) { buffer, _ in
+                guard let channelData = buffer.floatChannelData?[0] else {
+                    return
+                }
+                let array = Array(
+                    UnsafeBufferPointer(
+                        start: channelData,
+                        count: Int(buffer.frameLength)
+                    )
+                )
+                DispatchQueue.main.async {
+                    self.currentBuffer = array
+                    self.currentAmplitude = array.map { abs($0) }.max() ?? 0.0
+                    print("🎙️ Buffer received: \(array.count) samples")
+                }
+            }
+
+            do {
+                try self.engine.start()
+                print("✅ AudioEngine gestartet")
+            } catch {
+                print(
+                    "⚠️ AudioEngine konnte nicht gestartet werden: \(error.localizedDescription)"
+                )
+            }
         }
     }
 
